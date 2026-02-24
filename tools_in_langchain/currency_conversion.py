@@ -67,4 +67,3 @@ for tool_call in ai_message.tool_calls:
 
 b = llm_with_tools.invoke(messages).content
 
-print(b)
