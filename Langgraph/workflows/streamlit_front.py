@@ -19,7 +19,9 @@ def add_thread(thread_id):
     if thread_id not in st.session_state['chat_threads']:
         st.session_state['chat_threads'].append(thread_id)
 
-CONFIG = {'configurable':{'thread_id': 'thread-1'}}
+def load_converstion(thread_id):
+    return chatbot.get_state(config={'configurable':{'thread_id': thread_id}}).values.get("messages",[])
+
 
 if 'message_history' not in st.session_state:
     st.session_state['message_history'] = []
@@ -38,8 +40,22 @@ if st.sidebar.button("New Chat"):
     reset_chat()
 
 st.sidebar.header("My Conversations")
+for  thread_id in st.session_state['chat_threads']:
+    if st.sidebar.button(str(thread_id)):
+        st.session_state['thread_id'] = thread_id
+        messages = load_converstion(thread_id)
 
-st.sidebar.text(st.session_state['thread_id'])
+        temp_messages = []
+
+        for message in messages:
+            if isinstance(message,HumanMessage):
+                role = "user"
+            else:
+                role = "assistant"
+
+            temp_messages.append({'role': role, 'content': message.content})
+        st.session_state["message_history"]  = temp_messages
+
 
 # Loading the converstion history
 for message in st.session_state['message_history'] :
@@ -65,10 +81,10 @@ if user_input:
     with st.chat_message('assistant'):
         # st.text(ai_message)
         ai_message = st.write_stream(
-            message_chunk.content for message_chunk, metadata in chatbot.stream(
-            {'messages': [HumanMessage(content= user_input)]},
-            config= CONFIG,
-            stream_mode= 'messages'
-        )
+        (message_chunk.content for message_chunk, metadata in chatbot.stream(
+        {'messages': [HumanMessage(content=user_input)]},
+        config={'configurable': {'thread_id': st.session_state['thread_id']}},
+        stream_mode='messages'
+    ))
         )
     st.session_state['message_history'] .append({'role':'assistant', 'content': ai_message})  
